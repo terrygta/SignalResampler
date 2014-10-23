@@ -2,9 +2,7 @@
 
 #include <vector>
 #include <math.h>
-#include <iostream>
-#include <fstream>
-#include "Resampler.h"
+#include "upfirdn.h"
 #include "resample.h"
 
 using namespace std;
@@ -203,28 +201,3 @@ void resample ( int upFactor, int downFactor,
     outputSignal.push_back ( y[i] );
   }
 }
-
-//int main ()
-//{
-//  vector<double> a;
-//  vector<double> b;
-//  /*float x1[]={1., 2., 3., 4., 5., 6., 7., 8., 9., 10.};
-//  a.assign(x1, x1+10);*/
-//  ifstream fin;
-//  fin.open ( "c:\\test\\K.PatientFlow.csv" );
-//  while ( !fin.eof() )
-//  {
-//    double data = 0.0;
-//    fin>>data;
-//    a.push_back ( data );
-//  }
-//  fin.close();
-//  resample ( 2048, 100, a, b );
-//  ofstream fout;
-//  fout.open ( "c:\\test\\myflow.csv" );
-//  int outputSize = b.size();
-//  for ( int i = 0; i < outputSize; i++ )
-//    fout << b[i]<<endl;
-//  fout.close();
-//  return 0;
-//}

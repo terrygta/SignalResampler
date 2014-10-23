@@ -30,8 +30,7 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#ifndef RESAMPLER_H
-#define RESAMPLER_H
+#pragma once
 
 using namespace std;
 
@@ -251,6 +250,3 @@ pointer/count pairs.
     upfirdn<S1, S2, C>(upRate, downRate, &input[0], input.size(), &filter[0], 
                        filter.size(), results);
 }
-
-
-#endif

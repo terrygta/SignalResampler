@@ -8,8 +8,7 @@
 
 //Author: Haoqi Bai
 
-#if ! defined ( RESAMPLE_H )
-#define RESAMPLE_H
+#pragma once
 
 #include <boost/math/special_functions/bessel.hpp>
 
@@ -19,5 +18,3 @@ using namespace std;
 
 void resample ( int upFactor, int downFactor, 
   vector<double>& inputSignal, vector<double>& outputSignal );
-
-#endif
