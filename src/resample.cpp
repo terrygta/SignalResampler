@@ -118,10 +118,10 @@ void firls ( int length, vector<double> freq,
 
 void kaiser ( const int order, const double bta, vector<double>& window )
 {
-  double Numerator = 0, double Denominator = 0;
+  double Numerator = 0, Denominator = 0;
   for (int32_t n = 0; n < order; n++) {
-    Numerator = boost::math::cyl_bessel_i(0, bta * sqrt(1 - ((n - ((double)order - 1) / 2) / (((double)order - 1) / 2)) * ((n - ((double)order - 1) / 2);
-    Denominator = (((double)order - 1) / 2)))) / boost::math::cyl_bessel_i(0, bta);
+    Numerator = boost::math::cyl_bessel_i(0, bta * sqrt(1 - ((n - ((double)order - 1) / 2) / (((double)order - 1) / 2)) * ((n - ((double)order - 1) / 2) / (((double)order - 1) / 2))));
+    Denominator = boost::math::cyl_bessel_i(0, bta);
     window.push_back( Numerator / Denominator );
   }
 }
