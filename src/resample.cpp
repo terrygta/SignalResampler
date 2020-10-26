@@ -118,25 +118,12 @@ void firls ( int length, vector<double> freq,
 
 void kaiser ( const int order, const double bta, vector<double>& window )
 {
-  double bes = fabs ( boost::math::cyl_bessel_i ( 0, bta ) );
-  int odd = order % 2;
-  double xind = ( order - 1 ) * ( order - 1 );
-  int n = ( order + 1 ) / 2;
-  vector<double> xi;
-  xi.reserve ( n );
-  for ( int i = 0; i < n; i++ )
-  {
-    double val = static_cast<double>( i ) + 0.5 * ( 1 - static_cast<double>( odd ) );
-    xi.push_back ( 4 * val * val );
+  double Numerator = 0, double Denominator = 0;
+  for (int32_t n = 0; n < order; n++) {
+    Numerator = boost::math::cyl_bessel_i(0, bta * sqrt(1 - ((n - ((double)order - 1) / 2) / (((double)order - 1) / 2)) * ((n - ((double)order - 1) / 2);
+    Denominator = (((double)order - 1) / 2)))) / boost::math::cyl_bessel_i(0, bta);
+    window.push_back( Numerator / Denominator );
   }
-  vector<double> w;
-  w.reserve ( n );
-  for ( int i = 0; i < n; i++ )
-    w.push_back ( boost::math::cyl_bessel_i ( 0, bta * sqrt( 1 - xi[i] / xind ) ) / bes );
-  for ( int i = n - 1; i >= odd; i-- )
-    window.push_back ( fabs ( w[i] ) );
-  for ( int i = 0; i < n; i++ )
-    window.push_back ( fabs ( w[i] ) );
 }
 
 void resample ( int upFactor, int downFactor, 
