@@ -1,23 +1,10 @@
-#include <boost/math/special_functions/bessel.hpp>
-
 #include <vector>
+#include <numeric>
 #include <math.h>
 #include "upfirdn.h"
 #include "resample.h"
 
 using namespace std;
-
-int getGCD ( int num1, int num2 )
-{
-  int tmp = 0;
-  while ( num1 > 0 )
-  {
-    tmp = num1;
-    num1 = num2 % num1;
-    num2 = tmp;
-  }
-  return num2;
-}
 
 int quotientCeil ( int num1, int num2 )
 {
@@ -33,7 +20,7 @@ double sinc ( double x )
   return sin ( M_PI * x ) / ( M_PI * x );
 }
 
-void firls ( int length, vector<double> freq, 
+void firls ( int length, vector<double> freq,
   const vector<double>& amplitude, vector<double>& result )
 {
   vector<double> weight;
@@ -78,16 +65,16 @@ void firls ( int length, vector<double> freq,
     double b1 = amplitude[i] - slope * freq[i];
     if ( Nodd == 1 )
     {
-      b0 += ( b1 * ( freq[i + 1] - freq[i] ) ) + 
-        slope / 2.0 * ( freq[i + 1] * freq[i + 1] - freq[i] * freq[i] ) * 
+      b0 += ( b1 * ( freq[i + 1] - freq[i] ) ) +
+        slope / 2.0 * ( freq[i + 1] * freq[i + 1] - freq[i] * freq[i] ) *
           fabs( weight[(i + 1) / 2] * weight[(i + 1) / 2] );
     }
     for ( int j = 0; j < kSize; j++ )
     {
-      b[j] += ( slope / ( 4 * M_PI * M_PI ) * 
+      b[j] += ( slope / ( 4 * M_PI * M_PI ) *
         (cos ( 2 * M_PI * k[j] * freq[i + 1] ) - cos ( 2 * M_PI * k[j] * freq[i] )) / ( k[j] * k[j] )) *
           fabs( weight[(i + 1) / 2] * weight[(i + 1) / 2] );
-      b[j] += ( freq[i + 1] * ( slope * freq[i + 1] + b1 ) * sinc( 2 * k[j] * freq[i + 1] ) - 
+      b[j] += ( freq[i + 1] * ( slope * freq[i + 1] + b1 ) * sinc( 2 * k[j] * freq[i + 1] ) -
         freq[i] * ( slope * freq[i] + b1 ) * sinc( 2 * k[j] * freq[i] ) ) *
           fabs( weight[(i + 1) / 2] * weight[(i + 1) / 2] );
     }
@@ -120,22 +107,22 @@ void kaiser ( const int order, const double bta, vector<double>& window )
 {
   double Numerator = 0, Denominator = 0;
   for (int32_t n = 0; n < order; n++) {
-    Numerator = boost::math::cyl_bessel_i(0, bta * sqrt(1 - ((n - ((double)order - 1) / 2) / (((double)order - 1) / 2)) * ((n - ((double)order - 1) / 2) / (((double)order - 1) / 2))));
-    Denominator = boost::math::cyl_bessel_i(0, bta);
+    Numerator = cyl_bessel_i(0, bta * sqrt(1 - ((n - ((double)order - 1) / 2) / (((double)order - 1) / 2)) * ((n - ((double)order - 1) / 2) / (((double)order - 1) / 2))));
+    Denominator = cyl_bessel_i(0, bta);
     window.push_back( Numerator / Denominator );
   }
 }
 
-void resample ( int upFactor, int downFactor, 
+void resample ( int upFactor, int downFactor,
   vector<double>& inputSignal, vector<double>& outputSignal )
 {
   const int n = 10;
   const double bta = 5.0;
   if ( upFactor <= 0 || downFactor <= 0 )
-    throw std::runtime_error ( "factors must be positive integer" );
-  int gcd = getGCD ( upFactor, downFactor );
-  upFactor /= gcd;
-  downFactor /= gcd;
+    throw runtime_error ( "factors must be positive integer" );
+  int gcd_o = gcd ( upFactor, downFactor );
+  upFactor /= gcd_o;
+  downFactor /= gcd_o;
 
   if ( upFactor == downFactor )
   {
