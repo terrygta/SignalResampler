@@ -12,7 +12,7 @@
 
 #include <vector>
 
-using namespace std;
+using std::vector;
 
 void resample ( int upFactor, int downFactor,
   vector<double>& inputSignal, vector<double>& outputSignal );

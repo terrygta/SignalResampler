@@ -1,10 +1,8 @@
-#include <vector>
 #include <numeric>
-#include <math.h>
+#include <cmath>
+#include <algorithm>
 #include "upfirdn.h"
 #include "resample.h"
-
-using namespace std;
 
 int quotientCeil ( int num1, int num2 )
 {
@@ -15,100 +13,99 @@ int quotientCeil ( int num1, int num2 )
 
 double sinc ( double x )
 {
-  if ( fabs ( x - 0.0 ) < 0.000001 )
+  if ( std::abs ( x - 0.0 ) < 0.000001 )
     return 1;
-  return sin ( M_PI * x ) / ( M_PI * x );
+  return std::sin ( M_PI * x ) / ( M_PI * x );
 }
 
 void firls ( int length, vector<double> freq,
   const vector<double>& amplitude, vector<double>& result )
 {
-  vector<double> weight;
   int freqSize = freq.size ();
   int weightSize = freqSize / 2;
 
-  weight.reserve ( weightSize );
-  for ( int i = 0; i < weightSize; i++ )
-    weight.push_back ( 1.0 );
+  vector<double> weight(weightSize, 1.0);
 
   int filterLength = length + 1;
 
-  for ( int i = 0; i < freqSize; i++ )
-    freq[i] /= 2.0;
-
-  vector<double> dFreq;
-  for ( int i = 1; i < freqSize; i++ )
-    dFreq.push_back ( freq[i] - freq[i - 1] );
+  for (auto &it: freq)
+    it /= 2.0;
 
   length = ( filterLength - 1 ) / 2;
-  int Nodd = filterLength % 2;
-  double b0 = 0.0;
-  vector<double> k;
-  if ( Nodd == 0 )
-  {
-    for ( int i = 0; i <= length; i++)
-      k.push_back ( i + 0.5 );
-  }
-  else
-  {
-    for ( int i = 0; i <= length; i++)
-      k.push_back ( i );
+  bool Nodd = filterLength & 1;
+  vector<double> k( length + 1 );
+  std::iota(k.begin(), k.end(), 0.0);
+  if (!Nodd) {
+    for (auto &it : k)
+      it += 0.5;
   }
 
-  vector<double> b;
-  int kSize = k.size();
-  for ( int i = 0; i < kSize; i++ )
-    b.push_back( 0.0 );
+  double b0 = 0.0;
+  if (Nodd) {
+    k.erase(k.begin());
+  }
+
+  vector<double> b(k.size(), 0.0);
   for ( int i = 0; i < freqSize; i += 2 )
   {
-    double slope = ( amplitude[i + 1] - amplitude[i] ) / ( freq[i + 1] - freq[i] );
-    double b1 = amplitude[i] - slope * freq[i];
-    if ( Nodd == 1 )
+    auto Fi = freq[i];
+    auto Fip1 = freq[i+1];
+    auto ampi = amplitude[i];
+    auto ampip1 = amplitude[i+1];
+    auto wt2 = std::pow(weight[i/2], 2);
+    auto m_s = (ampip1-ampi)/(Fip1-Fi);
+    auto b1 = ampi-(m_s*Fi);
+    if (Nodd)
     {
-      b0 += ( b1 * ( freq[i + 1] - freq[i] ) ) +
-        slope / 2.0 * ( freq[i + 1] * freq[i + 1] - freq[i] * freq[i] ) *
-          fabs( weight[(i + 1) / 2] * weight[(i + 1) / 2] );
+      b0 += (b1*(Fip1-Fi)) + m_s/2*(std::pow(Fip1, 2)-std::pow(Fi, 2))*wt2;
     }
-    for ( int j = 0; j < kSize; j++ )
-    {
-      b[j] += ( slope / ( 4 * M_PI * M_PI ) *
-        (cos ( 2 * M_PI * k[j] * freq[i + 1] ) - cos ( 2 * M_PI * k[j] * freq[i] )) / ( k[j] * k[j] )) *
-          fabs( weight[(i + 1) / 2] * weight[(i + 1) / 2] );
-      b[j] += ( freq[i + 1] * ( slope * freq[i + 1] + b1 ) * sinc( 2 * k[j] * freq[i + 1] ) -
-        freq[i] * ( slope * freq[i] + b1 ) * sinc( 2 * k[j] * freq[i] ) ) *
-          fabs( weight[(i + 1) / 2] * weight[(i + 1) / 2] );
-    }
+    std::transform(b.begin(), b.end(), k.begin(),b.begin(),
+                   [m_s, Fi, Fip1, wt2](double b, double k) {
+        return b + (m_s/(4*std::pow(M_PI, 2))*
+        (std::cos(2*M_PI*Fip1)-std::cos(2*M_PI*Fi))/(std::pow(k, 2)))*wt2;});
+    std::transform(b.begin(), b.end(), k.begin(), b.begin(),
+                  [m_s, Fi, Fip1, wt2, b1](double b, double k) {
+        return b + (Fip1*(m_s*Fip1+b1)*sinc(2*k*Fip1) -
+        Fi*(m_s*Fi+b1)*sinc(2*k*Fi))*wt2;});
   }
-  if ( Nodd == 1 )
-    b[0] = b0;
-  vector<double> a;
-  double w0 = weight[0];
-  for ( int i = 0; i < kSize; i++ )
-    a.push_back(( w0 * w0 ) * 4 * b[i]);
-  if ( Nodd == 1 )
+
+  if (Nodd)
   {
-    a[0] /= 2;
-    for ( int i = length; i >= 1; i-- )
-      result.push_back( a[i] / 2.0 );
-    result.push_back( a[0] );
-    for ( int i = 1; i <= length; i++ )
-      result.push_back( a[i] / 2.0 );
+    b.insert(b.begin(), b0);
+  }
+
+  auto w0 = weight.at(0);
+  vector<double> a(b.size());
+  std::transform(b.begin(), b.end(),
+                 a.begin(),
+                 [w0](double b) {return std::pow(w0, 2)*4*b;});
+
+  result = {a.rbegin(), a.rend()};
+  decltype(a.begin()) it;
+  if (Nodd)
+  {
+    it = a.begin()+1;
   }
   else
   {
-    for ( int i = length; i >= 0; i-- )
-      result.push_back( a[i] / 2.0 );
-    for ( int i = 0; i <= length; i++ )
-      result.push_back( a[i] / 2.0 );
+    it = a.begin();
+  }
+  result.insert(result.end(), it, a.end());
+
+  for (auto &it : result) {
+    it *= 0.5;
   }
 }
 
 void kaiser ( const int order, const double bta, vector<double>& window )
 {
-  double Numerator = 0, Denominator = 0;
-  for (int32_t n = 0; n < order; n++) {
-    Numerator = cyl_bessel_i(0, bta * sqrt(1 - ((n - ((double)order - 1) / 2) / (((double)order - 1) / 2)) * ((n - ((double)order - 1) / 2) / (((double)order - 1) / 2))));
-    Denominator = cyl_bessel_i(0, bta);
+  double Numerator, Denominator;
+  window.reserve(order);
+  Denominator = std::cyl_bessel_i(0, bta);
+  auto od2 = (static_cast<double>(order)-1)/2;
+  for (int n = 0; n < order; n++) {
+    auto x = bta*std::sqrt(1-std::pow((n-od2)/od2, 2));
+    Numerator = std::cyl_bessel_i(0, x);
     window.push_back( Numerator / Denominator );
   }
 }
@@ -120,7 +117,7 @@ void resample ( int upFactor, int downFactor,
   const double bta = 5.0;
   if ( upFactor <= 0 || downFactor <= 0 )
     throw runtime_error ( "factors must be positive integer" );
-  int gcd_o = gcd ( upFactor, downFactor );
+  int gcd_o = std::gcd ( upFactor, downFactor );
   upFactor /= gcd_o;
   downFactor /= gcd_o;
 
@@ -135,7 +132,7 @@ void resample ( int upFactor, int downFactor,
   int outputSize =  quotientCeil ( inputSize * upFactor, downFactor );
   outputSignal.reserve ( outputSize );
 
-  int maxFactor = max ( upFactor, downFactor );
+  int maxFactor = std::max ( upFactor, downFactor );
   double firlsFreq = 1.0 / 2.0 / static_cast<double> ( maxFactor );
   int length = 2 * n * maxFactor + 1;
   double firlsFreqs[] = { 0.0, 2.0 * firlsFreq, 2.0 * firlsFreq, 1.0 };
