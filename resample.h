@@ -26,7 +26,7 @@ T sinc ( T x )
   return std::sin ( M_PI * x ) / ( M_PI * x );
 }
 
-int quotientCeil ( int num1, int num2 )
+inline int quotientCeil ( int num1, int num2 )
 {
   if ( num1 % num2 != 0 )
     return num1 / num2 + 1;
